@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DCL + Segunda Ley de Newton + MRUA</title>
+<style>
+:root{
+  --bg:#f3f6fb; --card:#fff; --ink:#172033; --muted:#667085;
+  --blue:#2457d6; --green:#0f8a6a; --orange:#b86200; --red:#b42318;
+  --line:#d9e1ec; --navy:#16233f;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:22px 16px;text-align:center}
+header h1{margin:0 0 7px;font-size:28px}
+header p{margin:3px 0;opacity:.93}
+main{max-width:1180px;margin:20px auto;padding:0 14px 40px}
+.banner{background:#eef3ff;border-left:5px solid var(--blue);padding:15px 16px;border-radius:10px;margin-bottom:17px}
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:17px}
+.flow div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;font-weight:bold}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:17px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;box-shadow:0 5px 14px rgba(20,40,80,.05)}
+.full{grid-column:1/-1}
+h2{font-size:20px;margin-top:0} h3{font-size:16px;margin:18px 0 8px}
+label{display:block;font-weight:bold;margin:10px 0 5px}
+input,select{width:100%;padding:10px;border:1px solid #bcc7d8;border-radius:8px;font-size:16px;background:#fff}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.small{font-size:13px;color:var(--muted);margin-top:5px}
+button{border:0;border-radius:9px;padding:11px 15px;margin-top:14px;background:var(--blue);color:#fff;font-weight:bold;cursor:pointer;font-size:15px}
+button.alt{background:var(--green);margin-left:8px}
+button.gray{background:#667085;margin-left:8px}
+.formula{font-family:"Courier New",monospace;background:#f8fafc;border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin:7px 0}
+.result{background:#f4f8ff;border:1px solid #cbd8f2;border-radius:10px;padding:13px;margin-top:10px;min-height:60px;line-height:1.45}
+.ok{color:#087443}.bad{color:var(--red)}.warn{color:var(--orange)}
+canvas{width:100%;height:260px;border:1px solid var(--line);border-radius:10px;background:#fff}
+#movCanvas{height:180px}
+.tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef3ff;margin:2px 4px 2px 0;font-size:13px}
+.q{padding:13px 0;border-top:1px solid var(--line)}
+.q:first-child{border-top:0}
+.options label{font-weight:normal;margin:7px 0}
+.options input{width:auto;margin-right:7px}
+.hidden{display:none}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid var(--line);padding:8px;text-align:center}
+th{background:#f6f8fb}
+footer{text-align:center;color:var(--muted);font-size:13px;margin-top:22px}
+@media(max-width:850px){
+  .grid{grid-template-columns:1fr}
+  .flow{grid-template-columns:1fr 1fr}
+  .row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Escuela Webster</h1>
+  <p>Física I – 3.º CCH</p>
+  <p><strong>Diagrama de Cuerpo Libre + Segunda Ley de Newton + MRUA</strong></p>
+</header>
+
+<main>
+  <div class="banner">
+    <strong>Objetivo:</strong> identificar las fuerzas que actúan sobre un cuerpo, construir su DCL,
+    calcular la fuerza neta y conectar ese resultado con la aceleración y el movimiento.
+  </div>
+
+  <div class="flow">
+    <div>1. Identificar fuerzas</div>
+    <div>2. Dibujar DCL</div>
+    <div>3. Calcular ΣF</div>
+    <div>4. Obtener a</div>
+    <div>5. Aplicar MRUA</div>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>1. Configura el problema</h2>
+
+      <label>Situación física</label>
+      <select id="tipo" onchange="actualizarCampos()">
+        <option value="horizontal">Bloque sobre superficie horizontal</option>
+        <option value="inclinado">Bloque sobre plano inclinado</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label>Masa m (kg)</label>
+          <input id="m" type="number" step="any" value="5">
+        </div>
+        <div>
+          <label>Gravedad g (m/s²)</label>
+          <input id="g" type="number" step="any" value="9.81">
+        </div>
+      </div>
+
+      <div id="angBox" class="hidden">
+        <label>Ángulo del plano θ (°)</label>
+        <input id="theta" type="number" step="any" value="30">
+      </div>
+
+      <label>Fuerza aplicada F (N)</label>
+      <input id="F" type="number" step="any" value="30">
+      <p class="small">Se considera positiva en el sentido del movimiento elegido.</p>
+
+      <label>Coeficiente de fricción μ</label>
+      <input id="mu" type="number" step="any" value="0.20">
+      <p class="small">Usa 0 si quieres despreciar la fricción.</p>
+
+      <h3>Condiciones iniciales</h3>
+      <div class="row">
+        <div>
+          <label>Velocidad inicial v₀ (m/s)</label>
+          <input id="v0" type="number" step="any" value="0">
+        </div>
+        <div>
+          <label>Tiempo t (s)</label>
+          <input id="t" type="number" step="any" value="4">
+        </div>
+      </div>
+
+      <button onclick="resolver()">Resolver</button>
+      <button class="gray" onclick="reiniciar()">Reiniciar</button>
+    </section>
+
+    <section class="card">
+      <h2>2. Diagrama de Cuerpo Libre</h2>
+      <canvas id="dcl" width="700" height="300"></canvas>
+      <div id="leyenda">
+        <span class="tag">W = peso</span>
+        <span class="tag">N = normal</span>
+        <span class="tag">F = aplicada</span>
+        <span class="tag">f = fricción</span>
+      </div>
+      <button class="alt" onclick="mostrarComponentes()">Mostrar/ocultar componentes</button>
+    </section>
+
+    <section class="card">
+      <h2>3. Desarrollo matemático</h2>
+      <div id="desarrollo" class="result">
+        Configura los datos y pulsa <strong>Resolver</strong>.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>4. Del DCL al movimiento</h2>
+      <div class="formula">ΣF = m·a</div>
+      <div class="formula">a = ΣF / m</div>
+      <div class="formula">v = v₀ + a·t</div>
+      <div class="formula">x = v₀·t + ½·a·t²</div>
+      <div id="movimiento" class="result">
+        Aquí aparecerán aceleración, velocidad y desplazamiento.
+      </div>
+
+      <h3>Animación</h3>
+      <canvas id="movCanvas" width="700" height="190"></canvas>
+      <button class="alt" onclick="animar()">Animar movimiento</button>
+    </section>
+
+    <section class="card full">
+      <h2>5. Tabla de evolución</h2>
+      <p class="small">Muestra cómo cambian velocidad y posición con el tiempo.</p>
+      <div id="tablaWrap"></div>
+    </section>
+
+    <section class="card full">
+      <h2>6. Reto conceptual</h2>
+
+      <div class="q">
+        <p><strong>1.</strong> En una superficie horizontal, si la fuerza aplicada aumenta y la masa permanece constante, ¿qué sucede con la aceleración?</p>
+        <div class="options">
+          <label><input type="radio" name="q1" value="a"> Aumenta.</label>
+          <label><input type="radio" name="q1" value="b"> Disminuye.</label>
+          <label><input type="radio" name="q1" value="c"> No cambia.</label>
+        </div>
+      </div>
+
+      <div class="q">
+        <p><strong>2.</strong> En un plano inclinado, la componente del peso paralela al plano es:</p>
+        <div class="options">
+          <label><input type="radio" name="q2" value="a"> mg cos θ</label>
+          <label><input type="radio" name="q2" value="b"> mg sen θ</label>
+          <label><input type="radio" name="q2" value="c"> mg tan θ</label>
+        </div>
+      </div>
+
+      <div class="q">
+        <p><strong>3.</strong> Si la fuerza neta es cero:</p>
+        <div class="options">
+          <label><input type="radio" name="q3" value="a"> La aceleración es cero.</label>
+          <label><input type="radio" name="q3" value="b"> La velocidad siempre es cero.</label>
+          <label><input type="radio" name="q3" value="c"> El objeto necesariamente se detiene.</label>
+        </div>
+      </div>
+
+      <div class="q">
+        <p><strong>4.</strong> La fricción cinética se calcula aproximadamente como:</p>
+        <div class="options">
+          <label><input type="radio" name="q4" value="a"> f = μN</label>
+          <label><input type="radio" name="q4" value="b"> f = m/a</label>
+          <label><input type="radio" name="q4" value="c"> f = mg sen θ</label>
+        </div>
+      </div>
+
+      <div class="q">
+        <p><strong>5.</strong> Si ΣF es constante, ¿por qué puede aplicarse MRUA?</p>
+        <div class="options">
+          <label><input type="radio" name="q5" value="a"> Porque la aceleración es constante.</label>
+          <label><input type="radio" name="q5" value="b"> Porque la masa cambia.</label>
+          <label><input type="radio" name="q5" value="c"> Porque la velocidad es siempre cero.</label>
+        </div>
+      </div>
+
+      <button onclick="revisar()">Revisar respuestas</button>
+      <div id="feedback" class="result"></div>
+    </section>
+  </div>
+
+  <footer>Proyecto didáctico de Física · Dinámica + Cinemática · Escuela Webster</footer>
+</main>
+
+<script>
+let componentesVisibles = true;
+let solucion = null;
+let animId = null;
+
+function val(id){ return parseFloat(document.getElementById(id).value); }
+function fmt(x){ if(Math.abs(x)<1e-10)x=0; return Number(x.toFixed(3)); }
+function deg(rad){ return rad*Math.PI/180; }
+
+function actualizarCampos(){
+  const tipo=document.getElementById("tipo").value;
+  document.getElementById("angBox").classList.toggle("hidden", tipo!=="inclinado");
+  dibujarDCL();
+}
+
+function validar(){
+  const tipo=document.getElementById("tipo").value;
+  const arr=[val("m"),val("g"),val("F"),val("mu"),val("v0"),val("t")];
+  if(tipo==="inclinado") arr.push(val("theta"));
+  if(arr.some(Number.isNaN)) return "Completa todos los datos.";
+  if(val("m")<=0) return "La masa debe ser mayor que cero.";
+  if(val("g")<=0) return "La gravedad debe ser mayor que cero.";
+  if(val("mu")<0) return "El coeficiente de fricción no puede ser negativo.";
+  if(val("t")<0) return "El tiempo no puede ser negativo.";
+  return "";
+}
+
+function resolver(){
+  const err=validar();
+  if(err){
+    document.getElementById("desarrollo").innerHTML='<span class="bad">'+err+'</span>';
+    return;
+  }
+
+  const tipo=document.getElementById("tipo").value;
+  const m=val("m"), g=val("g"), F=val("F"), mu=val("mu"), v0=val("v0"), t=val("t");
+  let theta=0, W=m*g, N=0, f=0, Fnet=0, pesoPar=0, pesoPerp=0;
+
+  if(tipo==="horizontal"){
+    N=W;
+    f=mu*N;
+    Fnet=F-f;
+  }else{
+    theta=deg(val("theta"));
+    pesoPar=W*Math.sin(theta);
+    pesoPerp=W*Math.cos(theta);
+    N=pesoPerp;
+    f=mu*N;
+    Fnet=F - pesoPar - f;
+  }
+
+  const a=Fnet/m;
+  const v=v0+a*t;
+  const x=v0*t+0.5*a*t*t;
+
+  solucion={tipo,m,g,F,mu,v0,t,theta,W,N,f,Fnet,a,v,x,pesoPar,pesoPerp};
+
+  if(tipo==="horizontal"){
+    document.getElementById("desarrollo").innerHTML = `
+      <b>1. Peso:</b> W = mg = ${fmt(m)}(${fmt(g)}) = <b>${fmt(W)} N</b><br><br>
+      <b>2. Eje vertical:</b> N - W = 0 → N = <b>${fmt(N)} N</b><br><br>
+      <b>3. Fricción:</b> f = μN = ${fmt(mu)}(${fmt(N)}) = <b>${fmt(f)} N</b><br><br>
+      <b>4. Eje horizontal:</b> ΣFₓ = F - f = ${fmt(F)} - ${fmt(f)} = <b>${fmt(Fnet)} N</b>
+    `;
+  }else{
+    document.getElementById("desarrollo").innerHTML = `
+      <b>1. Peso:</b> W = mg = <b>${fmt(W)} N</b><br><br>
+      <b>2. Componentes del peso:</b><br>
+      W∥ = mg sen θ = <b>${fmt(pesoPar)} N</b><br>
+      W⊥ = mg cos θ = <b>${fmt(pesoPerp)} N</b><br><br>
+      <b>3. Normal:</b> N = W⊥ = <b>${fmt(N)} N</b><br><br>
+      <b>4. Fricción:</b> f = μN = <b>${fmt(f)} N</b><br><br>
+      <b>5. Fuerza neta paralela al plano:</b><br>
+      ΣF = F - W∥ - f = ${fmt(F)} - ${fmt(pesoPar)} - ${fmt(f)} = <b>${fmt(Fnet)} N</b>
+    `;
+  }
+
+  let interp="";
+  if(Math.abs(Fnet)<1e-9) interp="La fuerza neta es aproximadamente cero, por lo tanto la aceleración es cero.";
+  else if(Fnet>0) interp="La fuerza neta es positiva: el cuerpo acelera en el sentido positivo elegido.";
+  else interp="La fuerza neta es negativa: la aceleración apunta en sentido contrario al positivo elegido.";
+
+  document.getElementById("movimiento").innerHTML = `
+    <b>Aceleración:</b> a = ΣF/m = ${fmt(Fnet)}/${fmt(m)} = <b>${fmt(a)} m/s²</b><br>
+    <b>Velocidad final:</b> v = v₀ + at = <b>${fmt(v)} m/s</b><br>
+    <b>Desplazamiento:</b> x = v₀t + ½at² = <b>${fmt(x)} m</b><br><br>
+    ${interp}
+  `;
+
+  dibujarDCL();
+  dibujarMovimiento(0);
+  generarTabla();
+}
+
+function dibujarFlecha(ctx,x1,y1,x2,y2,texto,color){
+  const ang=Math.atan2(y2-y1,x2-x1);
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-11*Math.cos(ang-Math.PI/6),y2-11*Math.sin(ang-Math.PI/6));
+  ctx.lineTo(x2-11*Math.cos(ang+Math.PI/6),y2-11*Math.sin(ang+Math.PI/6));
+  ctx.closePath();ctx.fill();
+  ctx.font="15px Arial";ctx.fillText(texto,(x1+x2)/2+4,(y1+y2)/2-6);
+}
+
+function dibujarDCL(){
+  const c=document.getElementById("dcl"), ctx=c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);
+  const tipo=document.getElementById("tipo").value;
+  const cx=350, cy=150;
+
+  if(tipo==="horizontal"){
+    ctx.strokeStyle="#444";ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(80,205);ctx.lineTo(620,205);ctx.stroke();
+    ctx.fillStyle="#2f3b52";ctx.fillRect(cx-38,cy-35,76,70);
+    dibujarFlecha(ctx,cx,cy-35,cx,55,"N","#0f8a6a");
+    dibujarFlecha(ctx,cx,cy+35,cx,260,"W","#b42318");
+    dibujarFlecha(ctx,cx+38,cy,cx+150,cy,"F","#2457d6");
+    dibujarFlecha(ctx,cx-38,cy,cx-150,cy,"f","#b86200");
+  }else{
+    const ang=deg(val("theta")||30);
+    const x1=100,y1=240,x2=620,y2=240-520*Math.tan(ang)*0.55;
+    ctx.strokeStyle="#444";ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(-ang);
+    ctx.fillStyle="#2f3b52";
+    ctx.fillRect(-38,-35,76,70);
+
+    dibujarFlecha(ctx,38,0,150,0,"F","#2457d6");
+    dibujarFlecha(ctx,-38,0,-145,0,"f","#b86200");
+    dibujarFlecha(ctx,0,-35,0,-120,"N","#0f8a6a");
+    ctx.restore();
+
+    dibujarFlecha(ctx,cx,cy,cx,270,"W","#b42318");
+
+    if(componentesVisibles){
+      ctx.save();
+      ctx.translate(cx,cy);
+      ctx.rotate(-ang);
+      dibujarFlecha(ctx,0,0,0,85,"W⊥","#7a5af8");
+      dibujarFlecha(ctx,0,0,-90,0,"W∥","#7a5af8");
+      ctx.restore();
+    }
+  }
+}
+
+function mostrarComponentes(){
+  componentesVisibles=!componentesVisibles;
+  dibujarDCL();
+}
+
+function dibujarMovimiento(frac){
+  const c=document.getElementById("movCanvas"), ctx=c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);
+  ctx.strokeStyle="#666";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(30,135);ctx.lineTo(670,135);ctx.stroke();
+  if(!solucion) return;
+
+  const tt=solucion.t*frac;
+  const xx=solucion.v0*tt+0.5*solucion.a*tt*tt;
+  const final=solucion.x;
+  const min=Math.min(0,final)-2, max=Math.max(0,final)+2, rango=Math.max(4,max-min);
+  let px=50+(xx-min)/rango*590; px=Math.max(45,Math.min(655,px));
+
+  ctx.fillStyle="#253858";ctx.fillRect(px-24,100,48,34);
+  ctx.beginPath();ctx.arc(px-14,138,6,0,Math.PI*2);ctx.arc(px+14,138,6,0,Math.PI*2);ctx.fill();
+
+  ctx.fillStyle="#172033";ctx.font="14px Arial";
+  ctx.fillText(`t = ${fmt(tt)} s`,20,24);
+  ctx.fillText(`x = ${fmt(xx)} m`,20,44);
+  ctx.fillText(`a = ${fmt(solucion.a)} m/s²`,20,64);
+}
+
+function animar(){
+  if(!solucion) resolver();
+  if(!solucion) return;
+  if(animId) cancelAnimationFrame(animId);
+  const ini=performance.now(), dur=3500;
+  function paso(now){
+    let f=(now-ini)/dur;if(f>1)f=1;
+    dibujarMovimiento(f);
+    if(f<1) animId=requestAnimationFrame(paso);
+  }
+  animId=requestAnimationFrame(paso);
+}
+
+function generarTabla(){
+  if(!solucion)return;
+  const pasos=5;
+  let html='<table><tr><th>t (s)</th><th>v (m/s)</th><th>x (m)</th></tr>';
+  for(let i=0;i<=pasos;i++){
+    const tt=solucion.t*i/pasos;
+    const vv=solucion.v0+solucion.a*tt;
+    const xx=solucion.v0*tt+0.5*solucion.a*tt*tt;
+    html+=`<tr><td>${fmt(tt)}</td><td>${fmt(vv)}</td><td>${fmt(xx)}</td></tr>`;
+  }
+  html+='</table>';
+  document.getElementById("tablaWrap").innerHTML=html;
+}
+
+function revisar(){
+  const corr={q1:"a",q2:"b",q3:"a",q4:"a",q5:"a"};
+  let puntos=0,resp=0;
+  for(const [q,r] of Object.entries(corr)){
+    const e=document.querySelector(`input[name="${q}"]:checked`);
+    if(e){resp++;if(e.value===r)puntos++;}
+  }
+  const f=document.getElementById("feedback");
+  if(resp<5){
+    f.innerHTML=`<span class="warn">Has respondido ${resp} de 5 preguntas.</span>`;
+    return;
+  }
+  const msg=puntos===5 ? "¡Excelente! Dominas la conexión entre DCL, Newton y MRUA." :
+            puntos>=4 ? "Muy bien. Revisa únicamente el concepto que falló." :
+            "Conviene revisar nuevamente: fuerzas → ΣF → a → MRUA.";
+  f.innerHTML=`<b>Resultado: ${puntos}/5</b><br>${msg}`;
+}
+
+function reiniciar(){
+  document.getElementById("tipo").value="horizontal";
+  document.getElementById("m").value=5;
+  document.getElementById("g").value=9.81;
+  document.getElementById("theta").value=30;
+  document.getElementById("F").value=30;
+  document.getElementById("mu").value=0.20;
+  document.getElementById("v0").value=0;
+  document.getElementById("t").value=4;
+  solucion=null;
+  document.getElementById("desarrollo").innerHTML='Configura los datos y pulsa <strong>Resolver</strong>.';
+  document.getElementById("movimiento").innerHTML='Aquí aparecerán aceleración, velocidad y desplazamiento.';
+  document.getElementById("tablaWrap").innerHTML='';
+  actualizarCampos();
+  dibujarMovimiento(0);
+}
+actualizarCampos();
+dibujarMovimiento(0);
+</script>
+</body>
+</html>
